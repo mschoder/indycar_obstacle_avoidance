@@ -14,7 +14,7 @@ def deleteObstacleNodes(localGraph: graph, obstacleStateInfo: array) -> graph:
     Depends on specific implemetation of collision_check() TBD.
     '''
 
-def determinePrimitives(feasibleGraph: graph, )
+def determinePrimitives(feasibleGraph: graph):
     '''
     Determine which action primitives are possible given the feasible graph
     '''
