@@ -25,9 +25,9 @@ parsed_trackfile_out  = "./data/ims_track_parsed.csv"   # Location to write pars
 vehicle_width         = 1.6                             # Meters
 lateral_safety_buffer = 1.0                             # Min distance from vehicle outer edge to track bound for node creation (meters)
 
-long_sep_straight     = 20                              # Longitudinal separation between nodes on straights (m)
-long_sep_curve        = 8                               # Longitudinal separation between nodes on curves (m)
-lat_sep               = 0.5                             # Lateral separation between nodes (m)
+long_sep_straight     = 25                              # Longitudinal separation between nodes on straights (m)
+long_sep_curve        = 10                              # Longitudinal separation between nodes on curves (m)
+lat_sep               = 1.0                             # Lateral separation between nodes (m)
 curvature_thresh      = 0.001                           # If segment's max curvature > threshold, segment is considered a curve, else a straight
 
 cost_weights = {                                        # Weights for curvature cost function that sets costs on each segment length
@@ -122,6 +122,10 @@ while s_fine[-1] - stations[-1] > long_sep_curve:
         stations.append(s_next_curve)
     else:
         stations.append(s_next_straight)
+    
+if tracklength - stations[-1] < long_sep_curve/2:
+    stations.pop()
+stations_cl = stations + [stations[0]]
 
 # Generate nodes dict and with x,y,psi values for each node
 # Example format: nodes[s][l][x/y/psi]: nodes['240']['-3.5']['y']
@@ -153,9 +157,9 @@ with open('./data/nodes.json', 'w') as fp:
 
 # Generate edges dict with C1 spline coefficients and costs for each pair of adjacent stations
 edges = {}
-for i in range(len(stations) - 1):
-    s_start = stations[i]
-    s_end = stations[i+1]
+for i in range(len(stations_cl) - 1):
+    s_start = stations_cl[i]
+    s_end = stations_cl[i+1]
     edges[str(s_start)] = {}
     
     for l_start, v_start in nodes[str(s_start)].items():
