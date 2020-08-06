@@ -6,14 +6,14 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <matplotlibcpp.h>
-#include <trackGraph.h>
+#include <Trackgraph.h>
 
 using namespace std;
 using json = nlohmann::json;
 namespace plt = matplotlibcpp;
 
 
-trackGraph parseGlobalGraph(string nodeFile, string edgeFile) {
+Trackgraph parseGlobalGraph(string nodeFile, string edgeFile) {
     // Load json graph from file
     std::ifstream ifs_nodes(nodeFile);
     std::ifstream ifs_edges(edgeFile);
@@ -38,24 +38,18 @@ trackGraph parseGlobalGraph(string nodeFile, string edgeFile) {
     cout << "last edge s: " << global_stations_e.back() << endl;
 
     // Build graph
-    trackGraph graph;
+    Trackgraph graph;
     for (auto &s : global_stations) {
         nlohmann::json layer_start = edges_json.at(to_string(s));
         for (auto &[ls_str, val] : layer_start.items()) {
             nlohmann::json pxy = nodes_json.at(to_string(s)).at(ls_str);
             double ls_flt = stod(ls_str);
-            Node n;
-            n.x = pxy.at("x");
-            n.y = pxy.at("y");
-            n.psi = pxy.at("psi");
+            Node n(pxy.at("psi"), pxy.at("x"), pxy.at("y"));
             graph.setNode(s, ls_flt, n);
             nlohmann::json layer_end = layer_start.at(ls_str);
-            for (auto &[le_str, egvals] : layer_end.items()) {
+            for (auto &[le_str, eg] : layer_end.items()) {
                 auto le_flt = stod(le_str);
-                Edge edge;
-                edge.x_coef = egvals.at("x_coef");
-                edge.y_coef = egvals.at("y_coef");
-                edge.cost = egvals.at("cost");
+                Edge edge(eg.at("x_coef"), eg.at("y_coef"), eg.at("cost"));
                 graph.setEdge(s, ls_flt, le_flt, edge);
             }
         }
@@ -82,7 +76,7 @@ vector<double> LinearSpacedArray(double a, double b, std::size_t N) {
     return xs;
 }
 
-void plotTrack(trackGraph &graph) {
+void plotTrack(Trackgraph &graph) {
     // Plot the global_graph
     vector<double> x_nodes, y_nodes;
     for (auto &s : graph.getNodeStations()) {
@@ -97,7 +91,7 @@ void plotTrack(trackGraph &graph) {
     plt::show();
 }
 
-void plotLocalGraph(trackGraph &graph) {
+void plotLocalGraph(Trackgraph &graph) {
     // plot the local_graph
     plt::figure_size(780, 1200);
     vector<double> x_nodes, y_nodes;
@@ -125,24 +119,34 @@ void plotLocalGraph(trackGraph &graph) {
 
 int main() {
 
-    // Tmp test values
-    double s_pos = 1093.432;
-    double l_pos = -4.935;
-    double planning_horizon = 340.0;
+    // Track lattice input files    
     string nodeFile = "./data/nodes.json";
     string edgeFile = "./data/edges.json";
 
-    trackGraph global_graph = parseGlobalGraph(nodeFile, edgeFile);
+    // Test data
+    double s_pos = 3793.432;
+    double l_pos = -4.935;
+    double planning_horizon = 340.0;
+    
+
+    Trackgraph global_graph = parseGlobalGraph(nodeFile, edgeFile);
 
     auto start = std::chrono::high_resolution_clock::now();
 
     cout << global_graph.getNode(1105, 1.0).x << endl;
     cout << global_graph.getEdge(1105, 2.0, 3.0).cost << endl;
 
-    trackGraph local_graph = global_graph.extractLocalGraph(s_pos, l_pos, planning_horizon);
+    Trackgraph local_graph = global_graph.extractLocalGraph(s_pos, l_pos, planning_horizon);
 
-    cout << local_graph.getNode(1105, 1.0).x << endl;
-    cout << local_graph.getEdge(1105, 2.0, 3.0).cost << endl;
+    // cout << local_graph.getNode(1105, 1.0).x << endl;
+    // cout << local_graph.getEdge(1105, 2.0, 3.0).cost << endl;
+
+    // collision checking
+
+
+    // graph search
+
+    // c2 trajectory 
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop-start);
@@ -153,5 +157,6 @@ int main() {
 
     return 0;
 };
+
 
 
