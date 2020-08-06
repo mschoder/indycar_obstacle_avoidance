@@ -6,7 +6,9 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <matplotlibcpp.h>
+#include <gnuplot_i.hpp>
 #include <Trackgraph.h>
+#include <Obstacle.h>
 
 using namespace std;
 using json = nlohmann::json;
@@ -34,9 +36,6 @@ Trackgraph parseGlobalGraph(string nodeFile, string edgeFile) {
     }
     sort(global_stations_e.begin(), global_stations_e.end());
 
-    cout << "last node s: " << global_stations.back() << endl;
-    cout << "last edge s: " << global_stations_e.back() << endl;
-
     // Build graph
     Trackgraph graph;
     for (auto &s : global_stations) {
@@ -57,7 +56,7 @@ Trackgraph parseGlobalGraph(string nodeFile, string edgeFile) {
     return graph;
 }
 
-vector<double> splineEval(vector<double> &u, array<double, 4> &coefs) {
+vector<double> splineEval(const vector<double> &u, const array<double, 4> &coefs) {
     vector<double> eval;
     for (auto &el : u) {
         eval.push_back(coefs[3]*pow(el,3) + coefs[2]*pow(el,2) + coefs[1]*el + coefs[0]);
@@ -91,8 +90,8 @@ void plotTrack(Trackgraph &graph) {
     plt::show();
 }
 
-void plotLocalGraph(Trackgraph &graph) {
-    // plot the local_graph
+void plotLocalGraph(Trackgraph &graph, Obstacles &obstacles) {
+    // Nodes
     plt::figure_size(780, 1200);
     vector<double> x_nodes, y_nodes;
     for (auto &s : graph.getNodeStations()) {
@@ -102,19 +101,76 @@ void plotLocalGraph(Trackgraph &graph) {
             y_nodes.push_back(node.y); 
         }
     }
+    // Edges
     vector<double> u = LinearSpacedArray(0, 1, 50);
-    for (auto &s : graph.getEdgeStations()) {
-        for (auto &sel : graph.getNodeOffsets(s)) {
-            for (auto &eel : graph.getEdgeDests(s, sel)) {
-                auto edge = graph.getEdge(s, sel, eel);
+    for (const auto &s : graph.getEdgeStations()) {
+        for (const auto &sel : graph.getNodeOffsets(s)) {
+            for (const auto &eel : graph.getEdgeDests(s, sel)) {
+                const auto &edge = graph.getEdge(s, sel, eel);
                 vector<double> x_paths = splineEval(u, edge.x_coef);
                 vector<double> y_paths = splineEval(u, edge.y_coef);
                 plt::plot(x_paths, y_paths, "skyblue");
             }
         }
     }
-    plt::plot(x_nodes, y_nodes, "o");
+    // Obstacles
+    for (auto &el : obstacles.sv) {
+        pair<vector<double>, vector<double>> obs_pts = circle_points(el);
+        plt::plot(obs_pts.first, obs_pts.second, "k-");
+    }
+    plt::plot(x_nodes, y_nodes, "bo");
     plt::show();
+}
+
+void collision_checker(Trackgraph &graph, Obstacles &obstacles) {
+    // TODO: implement dynamic obstacles checking
+    // Nodes
+    for (const auto &s : graph.nodes) {
+        for (const auto &[offset,node] : s.second) {
+            for (const auto &obs : obstacles.sv) {
+                if (collision_check_circle(node, obs)) {
+                    graph.removeNode(s.first, offset);
+                }
+            }
+        }
+    }
+    // Edges
+    vector<double> u = LinearSpacedArray(0, 1, 100); // for spline eval
+    for (const auto &s : graph.edges) {
+        for (const auto &node : s.second) {
+            for (const auto &dn : node.second) {
+                vector<double> xspl = splineEval(u, dn.second.x_coef);
+                vector<double> yspl = splineEval(u, dn.second.y_coef);
+                // check each spline pt against each obs pt
+                for (int i = 0; i != xspl.size(); ++i) {
+                    for (auto &obs : obstacles.sv) {
+                        if (collision_check_circle(xspl[i], yspl[i], obs)) {
+                            graph.removeEdge(s.first, node.first, dn.first);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Check for nodes with no children
+    for (const auto &s : graph.edges) {
+        for (const auto &edge : s.second) {
+            if (edge.second.empty()) {
+                graph.removeNode(s.first, edge.first);
+            } else if (s.first != 0) { // First node will have no parents - OK
+                bool orphan = true;
+                for (const auto &parent : graph.edges.at(s.first - 1)) {
+                    if (parent.second.find(edge.first) != parent.second.end()) { // if node is a dest of parent
+                        orphan = false;
+                        break;
+                    }
+                if (orphan) {graph.removeNode(s.first, edge.first);}
+                }
+            }
+        }
+    }
+    
+    // Check for nodes with no children
 }
 
 int main() {
@@ -127,8 +183,12 @@ int main() {
     double s_pos = 3793.432;
     double l_pos = -4.935;
     double planning_horizon = 340.0;
-    
+    Obstacles obstacles;
+    obstacles.sv.push_back(StaticObstacle{1.0, 1.0, 1.2});
+    obstacles.sv.push_back(StaticObstacle{-4.48, 147.2, 2.1});
+    obstacles.sv.push_back(StaticObstacle{2.98, -49.9, 1.6});
 
+    // Parse global graph json data
     Trackgraph global_graph = parseGlobalGraph(nodeFile, edgeFile);
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -136,27 +196,29 @@ int main() {
     cout << global_graph.getNode(1105, 1.0).x << endl;
     cout << global_graph.getEdge(1105, 2.0, 3.0).cost << endl;
 
+    // Copy local segment of graph to work off of
     Trackgraph local_graph = global_graph.extractLocalGraph(s_pos, l_pos, planning_horizon);
 
-    // cout << local_graph.getNode(1105, 1.0).x << endl;
-    // cout << local_graph.getEdge(1105, 2.0, 3.0).cost << endl;
-
     // collision checking
+    collision_checker(local_graph, obstacles);
 
+    // min cost graph search
 
-    // graph search
-
-    // c2 trajectory 
+    // c2 trajectory gen
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop-start);
     cout << duration.count() << " microsec" << endl;
 
-    plotTrack(global_graph);
-    plotLocalGraph(local_graph);
+    // plotTrack(global_graph);
+    plotLocalGraph(local_graph, obstacles);
+
 
     return 0;
 };
 
 
 
+
+
+ 

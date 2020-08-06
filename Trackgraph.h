@@ -5,8 +5,6 @@
  * 
  * TODO:
  * header guards
- * constructor for edge struct
- * copy local graph as a subrange using two iterators (s level)
  * 
  */
 
@@ -37,18 +35,18 @@ struct Edge {
 
 class Trackgraph {
 
-    private:
+    public:
         map<int, map<double, Node>> nodes;
         map<int, map<double, map<double, Edge>>> edges;
 
     public:
         const double TRACKLENGTH = 4023.35;
         void setNode(const int& s, const double& l, Node& node) {
-            nodes[s][l] = Node(node.psi, node.x, node.y);
+            nodes[s][l] = Node {node.psi, node.x, node.y};
         }
 
         void setEdge(int& s, double& l_start, double& l_end, Edge& edge) {
-            edges[s][l_start][l_end] = Edge(edge.x_coef, edge.y_coef, edge.cost);
+            edges[s][l_start][l_end] = Edge {edge.x_coef, edge.y_coef, edge.cost};
         }
 
         Node& getNode(int s, double l) {
@@ -144,7 +142,6 @@ class Trackgraph {
             }
             auto prev = edges.find(s);
             prev--;
-            std::cout << "prev: " << prev->first << endl;
             if (prev != edges.end()) {
                 for (auto &sel : prev->second) {
                     auto &pnode = sel.first;
