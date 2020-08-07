@@ -41,6 +41,8 @@ class Trackgraph {
 
     public:
         const double TRACKLENGTH = 4023.35;
+
+
         void setNode(const int& s, const double& l, Node& node) {
             nodes[s][l] = Node {node.psi, node.x, node.y};
         }

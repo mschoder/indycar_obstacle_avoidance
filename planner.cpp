@@ -4,9 +4,9 @@
 #include <vector>
 #include <chrono>
 #include <fstream>
+#include <utility>
 #include <nlohmann/json.hpp>
 #include <matplotlibcpp.h>
-#include <gnuplot_i.hpp>
 #include <Trackgraph.h>
 #include <Obstacle.h>
 
@@ -90,7 +90,7 @@ void plotTrack(Trackgraph &graph) {
     plt::show();
 }
 
-void plotLocalGraph(Trackgraph &graph, Obstacles &obstacles) {
+void plotLocalGraph(Trackgraph &graph, Obstacles &obstacles, vector<pair<int,double>> &mcp) {
     // Nodes
     plt::figure_size(780, 1200);
     vector<double> x_nodes, y_nodes;
@@ -119,6 +119,17 @@ void plotLocalGraph(Trackgraph &graph, Obstacles &obstacles) {
         plt::plot(obs_pts.first, obs_pts.second, "k-");
     }
     plt::plot(x_nodes, y_nodes, "bo");
+    // Min Cost Path
+    vector<double> mcp_x, mcp_y;
+    for (auto &el : mcp) {
+        double x = graph.nodes.at(el.first).at(el.second).x;
+        double y = graph.nodes.at(el.first).at(el.second).y;
+        mcp_x.push_back(x);
+        mcp_y.push_back(y);
+    }
+    plt::plot(mcp_x, mcp_y, "ro");
+
+
     plt::show();
 }
 
@@ -157,6 +168,7 @@ void collision_checker(Trackgraph &graph, Obstacles &obstacles) {
         for (const auto &edge : s.second) {
             if (edge.second.empty()) {
                 graph.removeNode(s.first, edge.first);
+            // And check for orphan nodes
             } else if (s.first != 0) { // First node will have no parents - OK
                 bool orphan = true;
                 for (const auto &parent : graph.edges.at(s.first - 1)) {
@@ -169,9 +181,62 @@ void collision_checker(Trackgraph &graph, Obstacles &obstacles) {
             }
         }
     }
-    
-    // Check for nodes with no children
 }
+
+vector<pair<int, double>> min_cost_path_search(Trackgraph &graph) {
+    // pair<vector<double>, vector<double>> mcp;
+    map<int, map<double, pair<double, double>>> costs; // mimics edge structure; pair(cpst, parent offset)
+    for (auto &s : graph.nodes){
+        costs[s.first];
+    }
+    // Define iterators for graph
+    auto rit_c = graph.edges.rbegin(); // child node
+    auto rit_p = rit_c; ++rit_p; // parent node
+
+    // Initialize last layer costs to use lateral offset
+    for (auto &ls : rit_c->second) {
+        costs[rit_c->first][ls.first] = pair<double, double> {abs(ls.first), ls.first};
+    }
+
+    for (; rit_p != graph.edges.rend(); ++rit_p, ++rit_c) {
+        int s_child = rit_c->first;
+        int s_parent = rit_p->first;
+        for (auto &edge : rit_p->second) { // parent node
+            double l_start = edge.first;
+            for (auto &dest : edge.second) { // child node
+                double l_end = dest.first;
+                double ec = dest.second.cost; // edge from parent to child node
+
+                // Update parent node cost
+                // auto &s_cost = costs.at(rit->first);
+                if (costs.at(s_parent).find(l_start) != costs.at(s_parent).end()) { // if parent node in costs
+                    // Update parent cost if (child cost + ec) is lower
+                    if (ec + costs.at(s_child).at(l_end).first < costs.at(s_parent).at(l_start).first) { 
+                        costs.at(s_parent).at(l_start) = 
+                            pair<double, double> {(ec + costs.at(s_child).at(l_end).first), l_end};
+                    }
+                } else { // initialize cost at parent node if it doesn't exist
+                    costs.at(s_parent)[l_start] = 
+                        pair<double, double> {(ec + costs.at(s_child).at(l_end).first), l_end};
+                }
+            }
+        }
+    }
+    vector<pair<int, double>> mcp;  // (station(s), offset(l))
+    double cur_offset, child_offset;
+    for (auto &[s, node] : costs) {
+        if (s == 0) {
+            cur_offset = costs.at(s).begin()->first;
+            child_offset = costs.at(s).begin()->second.second;
+        } else {
+            child_offset = costs.at(s).at(cur_offset).second;
+        }
+    mcp.push_back(pair<int, double> {s, cur_offset});
+    cur_offset = child_offset;
+    }
+    return mcp;
+}
+
 
 int main() {
 
@@ -181,12 +246,12 @@ int main() {
 
     // Test data
     double s_pos = 3793.432;
-    double l_pos = -4.935;
+    double l_pos = 1.79;
     double planning_horizon = 340.0;
     Obstacles obstacles;
-    obstacles.sv.push_back(StaticObstacle{1.0, 1.0, 1.2});
-    obstacles.sv.push_back(StaticObstacle{-4.48, 147.2, 2.1});
-    obstacles.sv.push_back(StaticObstacle{2.98, -49.9, 1.6});
+    obstacles.sv.push_back(StaticObstacle{3.75, 1.46, 1.8});
+    obstacles.sv.push_back(StaticObstacle{-6.18, 147.2, 2.4});
+    obstacles.sv.push_back(StaticObstacle{2.98, -49.9, 3.1});
 
     // Parse global graph json data
     Trackgraph global_graph = parseGlobalGraph(nodeFile, edgeFile);
@@ -203,6 +268,7 @@ int main() {
     collision_checker(local_graph, obstacles);
 
     // min cost graph search
+    vector<pair<int, double>> mcp = min_cost_path_search(local_graph);
 
     // c2 trajectory gen
 
@@ -211,7 +277,7 @@ int main() {
     cout << duration.count() << " microsec" << endl;
 
     // plotTrack(global_graph);
-    plotLocalGraph(local_graph, obstacles);
+    plotLocalGraph(local_graph, obstacles, mcp);
 
 
     return 0;
