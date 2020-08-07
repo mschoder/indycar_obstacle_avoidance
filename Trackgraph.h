@@ -94,6 +94,18 @@ class Trackgraph {
             return offsets;
         }
 
+        vector<double> getEdgeOffsets(int s) {
+            if (edges.find(s) == edges.end()) {
+                throw std::invalid_argument("station s does not exist in Trackgraph");
+            }
+            std::vector<double> offsets;
+            for (auto &el : edges[s]) {
+                offsets.push_back(el.first);
+            }
+            sort(offsets.begin(), offsets.end());
+            return offsets;
+        }
+
         vector<double> getEdgeDests(int s, double l_start) {
             if (edges.find(s) != edges.end() && edges[s].find(l_start) != edges[s].end()) {
                 std::vector<double> dests;
