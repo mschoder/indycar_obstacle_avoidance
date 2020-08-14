@@ -1,2 +1,9 @@
-.ipynb
-.json
+*.ipynb
+*.json
+*.log
+*COLCON_IGNORE
+logs/
+build/
+install/
+bin/
+lib/
