@@ -20,18 +20,40 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(PythonLibs 2.7)
 
+
+include_directories(include
+  include
+  PRIVATE ${PYTHON_INCLUDE_DIRS}
+)
+
+add_library(${PROJECT_NAME}
+  src/Trackgraph.cpp
+  src/Path_planning_utils.cpp
+)
 
 add_executable(talker src/mock_se_pub.cpp)
 ament_target_dependencies(talker rclcpp std_msgs geometry_msgs)
 add_executable(listener src/mock_se_sub.cpp)
 ament_target_dependencies(listener rclcpp std_msgs geometry_msgs)
+add_executable(path_planner src/path_planner.cpp)
+ament_target_dependencies(path_planner rclcpp std_msgs geometry_msgs)
+
+target_link_libraries(
+  path_planner
+  ${PROJECT_NAME}
+  ${PYTHON_LIBRARIES}
+)
 
 
 install(TARGETS
   talker
   listener
-  DESTINATION lib/${PROJECT_NAME})
+  path_planner
+  DESTINATION lib/${PROJECT_NAME}
+
+)
 
 
 

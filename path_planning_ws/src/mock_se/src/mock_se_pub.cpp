@@ -5,16 +5,12 @@
 #include <fstream>
 
 #include "rclcpp/rclcpp.hpp"
-// #include "std_msgs/msg/string.hpp"
 #include "geometry_msgs/msg/pose.hpp"
 // #include "tf/tf.h"
 // #include "nav_msgs/msg/odometry.hpp"
 #include "csv_reader.h"
 
 using namespace std::chrono_literals;
-
-/* This example creates a subclass of Node and uses std::bind() to register a
-* member function as a callback from the timer. */
 
 class MockSEPublisher : public rclcpp::Node
 {

@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 /*
- * A class to read data from a csv file.
+ * A class to read data from a csv file, customized for "trackfile_parsed.csv"
  */
 class CSVReader
 {
