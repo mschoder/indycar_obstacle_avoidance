@@ -1,6 +1,7 @@
 *.ipynb
 *.json
 *.log
+*.pyc
 *COLCON_IGNORE
 logs/
 build/
