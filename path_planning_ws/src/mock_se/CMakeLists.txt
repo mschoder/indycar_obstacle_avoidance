@@ -31,6 +31,7 @@ include_directories(include
 add_library(${PROJECT_NAME}
   src/Trackgraph.cpp
   src/Path_planning_utils.cpp
+  src/cubic_spline.cpp
 )
 
 add_executable(talker src/mock_se_pub.cpp)

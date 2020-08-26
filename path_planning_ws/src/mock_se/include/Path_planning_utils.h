@@ -7,7 +7,8 @@
 #include <Trackgraph.h>
 #include <Obstacle.h>
 #include <matplotlibcpp.h>
-#include "interpolation.h"
+#include <cubic_spline.h>
+// #include "interpolation.h"
 
 using namespace std;
 
@@ -26,8 +27,7 @@ void plotLocalGraph(Trackgraph &graph, Obstacles &obstacles);
 void plotLocalGraph(Trackgraph &graph, Obstacles &obstacles, 
         vector<pair<int,double>> &mcp, vector<double> &pltx, vector<double> &plty);
 
-// Trajectory generation
-pair<alglib::spline1dinterpolant, alglib::spline1dinterpolant> trajectory_gen(
+pair<vector<SplineSet>, vector<SplineSet>> trajectory_gen(
     Trackgraph &graph, vector<pair<int, double>> &mcp);
 
 } // namespace pp_utils

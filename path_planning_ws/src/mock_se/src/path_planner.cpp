@@ -9,6 +9,7 @@
 #include <Obstacle.h>
 #include <ParseGraph.h>
 #include <Path_planning_utils.h>
+#include <cubic_spline.h>
 
 using std::placeholders::_1;
 
@@ -40,8 +41,11 @@ class PathPlanner : public rclcpp::Node
       vector<pair<int, double>> mcp = local_graph.min_cost_path_search();
       pair<vector<double>, vector<double>> mcp_xy = mcp_to_xy(local_graph, mcp);
 
-      
-
+      pair<vector<SplineSet>, vector<SplineSet>> c2_traj = pp_utils::trajectory_gen(
+          local_graph, mcp);
+        
+      RCLCPP_INFO(this->get_logger(), "Traj C2 X-Spline Coeffs[3]: a='%f', b = '%f', c = '%f', d = '%f'",
+          c2_traj.first[3].a, c2_traj.first[3].b, c2_traj.first[3].c, c2_traj.first[3].d);
       RCLCPP_INFO(this->get_logger(), "Start Pose x: '%f', y: '%f'", msg->position.x, msg->position.y);
       RCLCPP_INFO(this->get_logger(), "End Path Node x: '%f', y: '%f'",
                   mcp_xy.first.back(), mcp_xy.second.back());

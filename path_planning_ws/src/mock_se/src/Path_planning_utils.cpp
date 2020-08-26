@@ -4,19 +4,7 @@
 #include <Trackgraph.h>
 #include <Obstacle.h>
 #include <matplotlibcpp.h>
-
-#include "interpolation.h"
-#include "ap.h"
-#include "ap.cpp"
-#include "alglibinternal.cpp"
-#include "alglibmisc.cpp"
-#include "integration.cpp"
-#include "interpolation.cpp"
-#include "linalg.cpp"
-#include "optimization.cpp"
-#include "solvers.cpp"
-#include "specialfunctions.cpp"
-
+#include <cubic_spline.h>
 
 using namespace std;
 namespace plt = matplotlibcpp;
@@ -218,10 +206,11 @@ void plotLocalGraph(Trackgraph &graph, Obstacles &obstacles) {
     plt::show();
 }
 
-// Trajectory generation -- TODO - format output as non-alglib, depending on msg needed
-pair<alglib::spline1dinterpolant, alglib::spline1dinterpolant> trajectory_gen(
+
+// C2 Trajectory Generation
+pair<vector<SplineSet>, vector<SplineSet>> trajectory_gen(
     Trackgraph &graph, vector<pair<int, double>> &mcp) {
-    
+
     pair<vector<double>, vector<double>> mcp_xy = mcp_to_xy(graph, mcp);
     int n_interps = 50;
     int n_points = mcp_xy.first.size();
@@ -235,17 +224,7 @@ pair<alglib::spline1dinterpolant, alglib::spline1dinterpolant> trajectory_gen(
     double hix = cos(heading_start);
     double hex = cos(heading_last);
     double hiy = sin(heading_start);
-    double hey = sin(heading_last);
-
-    alglib::real_1d_array s, x, y;
-    s.setlength(n_points);
-    x.setlength(n_points);
-    y.setlength(n_points);
-    for (int i = 0; i <= n_points-1; ++i) {
-        s(i) = svec.at(i);
-        x(i) = mcp_xy.first.at(i);
-        y(i) = mcp_xy.second.at(i);
-    }
+    double hey = sin(heading_last);    
 
     // initialize slen_start and slen_end
     double x0, x1, xlast, x2last, y0, y1, ylast, y2last;
@@ -260,22 +239,19 @@ pair<alglib::spline1dinterpolant, alglib::spline1dinterpolant> trajectory_gen(
     double slen_start = sqrt(pow((x1 - x0), 2) + pow((y1 - y0), 2));
     double slen_end = sqrt(pow((xlast - x2last), 2) + pow((ylast - y2last), 2));
 
+    // alglib::real_1d_array s, x, y;
+    vector<double> s, x, y;
+    for (int i = 0; i <= n_points-1; ++i) {
+        s.push_back(svec.at(i)); // TODO - just use svec instead??
+        x.push_back(mcp_xy.first.at(i));
+        y.push_back(mcp_xy.second.at(i));
+    }
+
     // Fit splines
-    alglib::spline1dinterpolant xspline, yspline;
-    alglib::ae_int_t bct = 1; // first derivative (heading)
-    alglib::spline1dbuildcubic(s, x, n_points, bct, slen_start * hix, 
-                                               bct, slen_end * hex, xspline);
-    alglib::spline1dbuildcubic(s, y, n_points, bct, slen_start * hiy, 
-                                               bct, slen_end * hey, yspline);
-    pair<alglib::spline1dinterpolant, alglib::spline1dinterpolant> result;
-    result = {xspline, yspline};
+    vector<SplineSet> xspline = cubic_spline(s, x);
+    vector<SplineSet> yspline = cubic_spline(s, y);
+    pair<vector<SplineSet>, vector<SplineSet>> result = {xspline, yspline};
     return result;
 }
-
-
-
-
-
-
 
 } // namespace pp_utils
