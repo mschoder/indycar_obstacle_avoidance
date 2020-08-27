@@ -3,7 +3,7 @@
 <package format="3">
   <name>mock_se</name>
   <version>0.0.0</version>
-  <description>mock state estimation</description>
+  <description>path planning</description>
   <maintainer email="schoder.m@gmail.com">mschoder</maintainer>
   <license>Apache License 2.0</license>
 
@@ -11,6 +11,8 @@
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>nav_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -15,6 +15,7 @@ Trackgraph parseGlobalGraph(string nodeFile, string edgeFile) {
     // Load json graph from file
     std::ifstream ifs_nodes(nodeFile);
     std::ifstream ifs_edges(edgeFile);
+
     json nodes_json = json::parse(ifs_nodes);
     json edges_json = json::parse(ifs_edges);
     

@@ -41,7 +41,7 @@ class MockSEPublisher : public rclcpp::Node
 
     void timer_callback()
     {
-      auto message = geometry_msgs::msg::Pose();
+      geometry_msgs::msg::Pose message;
       message.position.x = x_[idx_];
       message.position.y = y_[idx_];
       message.orientation.z = psi_[idx_];
@@ -63,7 +63,8 @@ class MockSEPublisher : public rclcpp::Node
 
   int main(int argc, char * argv[])
   {
-    std::string trackfile = "/home/mschoder/data/ims_track_parsed.csv";
+    std::string basePath = "/home/mschoder/mit_driverless/indy_pers/indyCar_obstacle_avoidance/path_planning_ws/";  
+    std::string trackfile = basePath + "data/ims_track_parsed.csv";
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<MockSEPublisher>(trackfile));
     rclcpp::shutdown();

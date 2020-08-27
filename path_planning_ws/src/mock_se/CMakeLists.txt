@@ -20,6 +20,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(trajectory_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(PythonLibs 2.7)
 
 
@@ -36,10 +38,10 @@ add_library(${PROJECT_NAME}
 
 add_executable(talker src/mock_se_pub.cpp)
 ament_target_dependencies(talker rclcpp std_msgs geometry_msgs)
-add_executable(listener src/mock_se_sub.cpp)
-ament_target_dependencies(listener rclcpp std_msgs geometry_msgs)
+add_executable(mock_se_feedback src/mock_se_feedback.cpp)
+ament_target_dependencies(mock_se_feedback rclcpp std_msgs geometry_msgs nav_msgs)
 add_executable(path_planner src/path_planner.cpp)
-ament_target_dependencies(path_planner rclcpp std_msgs geometry_msgs)
+ament_target_dependencies(path_planner rclcpp std_msgs geometry_msgs trajectory_msgs nav_msgs)
 
 target_link_libraries(
   path_planner
@@ -50,12 +52,11 @@ target_link_libraries(
 
 install(TARGETS
   talker
-  listener
+  mock_se_feedback
   path_planner
   DESTINATION lib/${PROJECT_NAME}
 
 )
-
 
 
 # if(BUILD_TESTING)

@@ -171,12 +171,17 @@ pair<int,double> Trackgraph::xy2frenet(double x, double y) {
     // interpolate between s and s_prev            
     double fract = nearest_d / (nearest_d + next_nearest_d);
     double s_est = nearest_s + (next_nearest_s - nearest_s)*fract;
-    double x_est = nearest.first + (next_nearest.first - nearest.first)*fract;
-    double y_est = nearest.second + (next_nearest.second - nearest.second)*fract;
-    double l_est = sqrt(pow((x_est - x),2) + pow((y_est - y), 2));
-    // TODO FIX: if l is to the left, it's negative
+    double xm_est = nearest.first + (next_nearest.first - nearest.first)*fract;
+    double ym_est = nearest.second + (next_nearest.second - nearest.second)*fract;
+    double l_est = sqrt(pow((xm_est - x),2) + pow((ym_est - y), 2));
 
-    result = {s_est, l_est};
+    // determine which side of the curve l is one (whether pos/neg)
+    double dv = (x - nearest.first) * (next_nearest.second - nearest.second) - 
+        (y - nearest.second) * (next_nearest.first - nearest.first);
+    double l_signed = dv > 0 ? l_est : -l_est;
+    
+
+    result = {s_est, l_signed};
     // cout << "x vs x_est: " << x << " " << x_est << " y vs y_est: " << y 
     //         << " " << y_est << endl;
     return result;

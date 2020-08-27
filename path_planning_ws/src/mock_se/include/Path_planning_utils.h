@@ -8,7 +8,6 @@
 #include <Obstacle.h>
 #include <matplotlibcpp.h>
 #include <cubic_spline.h>
-// #include "interpolation.h"
 
 using namespace std;
 
